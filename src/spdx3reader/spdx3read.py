@@ -58,7 +58,27 @@ def main():
     if args.tree:
         print("SPDX Object Tree:")
         spdx3.print_tree(spdx_object_set.objects)
-        print(len(spdx_object_set.objects), "SPDX objects found in the JSON file.")
+        print(len(spdx_object_set.objects), "SPDX objects found.")
+    
+    objs = spdx_object_set.obj_by_type["SpdxDocument"]
+    if len(objs) != 1:
+        print("There should be exactly one SpdxDocument object in an SPDX 3 JSON file.")
+        print(f"Found: {len(objs)}")
+
+    rel_type_iri_len = len("https://spdx.org/rdf/3.0.1/terms/Core/relationshipType/")
+    relationships = spdx_object_set.obj_by_type["Relationship"]
+    print(len(relationships), "relationships found.")
+    print()
+    for rel in relationships:
+        from_ = getattr(rel[1], "from_")
+        to = getattr(rel[1], "to")
+        rel_type = getattr(rel[1], "relationshipType")[rel_type_iri_len:]
+        print(from_)
+        print(rel_type)
+        for o in to:
+            print(o)
+        print()
+
 
 if __name__ == "__main__":
     main()
