@@ -2,19 +2,25 @@
 # SPDX-FileType: SOURCE
 # SPDX-License-Identifier: Apache-2.0
 
+import argparse
 import json
 
 from spdx_python_model import v3_0_1 as spdx3
+from spdx_python_model import VERSION
+from spdx_python_model import bindings
+
 
 def read_json_file(filepath: str):
-    with open(filepath, 'r', encoding='utf-8') as f:
+    with open(filepath, "r", encoding="utf-8") as f:
         return json.load(f)
+
 
 def deserialize_spdx_json_file(filepath: str) -> spdx3.SHACLObjectSet:
     object_set = spdx3.SHACLObjectSet()
-    with open(filepath, 'r', encoding='utf-8') as f:
+    with open(filepath, "r", encoding="utf-8") as f:
         spdx3.JSONLDDeserializer().read(f, object_set)
         return object_set
+
 
 # def json_to_spdx_graph(json_data) -> list[spdx3.SHACLObject]:
 #     """
@@ -42,28 +48,36 @@ def deserialize_spdx_json_file(filepath: str) -> spdx3.SHACLObjectSet:
 
 #     return graph
 
+
 def main():
-    import argparse
     parser = argparse.ArgumentParser(description="Read and print an SPDX 3 JSON file.")
     parser.add_argument("filepath", help="Path to the SPDX 3 JSON file")
-    parser.add_argument("-D", "--dump", action="store_true", help="Print the JSON content")
-    parser.add_argument("-T", "--tree", action="store_true", help="Print the SPDX object tree")
+    parser.add_argument(
+        "-D", "--dump", action="store_true", help="Print the JSON content"
+    )
+    parser.add_argument(
+        "-T", "--tree", action="store_true", help="Print the SPDX object tree"
+    )
     args = parser.parse_args()
 
     if args.dump:
         json_data = read_json_file(args.filepath)
         print(json.dumps(json_data, indent=2))
-    
+
     spdx_object_set = deserialize_spdx_json_file(args.filepath)
     if args.tree:
         print("SPDX Object Tree:")
         spdx3.print_tree(spdx_object_set.objects)
         print(len(spdx_object_set.objects), "SPDX objects found.")
-    
-    objs = spdx_object_set.obj_by_type["SpdxDocument"]
-    if len(objs) != 1:
-        print("There should be exactly one SpdxDocument object in an SPDX 3 JSON file.")
-        print(f"Found: {len(objs)}")
+
+    spdx_documents = list(spdx_object_set.obj_by_type["SpdxDocument"])
+    if len(spdx_documents) != 1:
+        print(
+            "Warning: There should be exactly one SpdxDocument object in an SPDX 3 JSON file."
+        )
+        print(f"Found: {len(spdx_documents)}")
+    else:
+        print("SPDX Spec Version:", spdx_documents[0][1].creationInfo.specVersion)
 
     rel_type_iri_len = len("https://spdx.org/rdf/3.0.1/terms/Core/relationshipType/")
     relationships = spdx_object_set.obj_by_type["Relationship"]
@@ -81,4 +95,9 @@ def main():
 
 
 if __name__ == "__main__":
+    print(f"SPDX Python Model Version: {VERSION}")
+    print("Available bindings in spdx_python_model:")
+    for name in dir(bindings):
+        if not name.startswith("__"):
+            print(name)
     main()
