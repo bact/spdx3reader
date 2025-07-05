@@ -58,6 +58,9 @@ def main():
     parser.add_argument(
         "-T", "--tree", action="store_true", help="Print the SPDX object tree"
     )
+    parser.add_argument(
+        "-R", "--rel", action="store_true", help="Print all relationships in the SPDX file"
+    )
     args = parser.parse_args()
 
     if args.dump:
@@ -77,21 +80,28 @@ def main():
         )
         print(f"Found: {len(spdx_documents)}")
     else:
-        print("SPDX Spec Version:", spdx_documents[0][1].creationInfo.specVersion)
+        print(spdx_documents)
+        doc = spdx_documents[0][1]
+        print("SPDX Spec Version:", doc.creationInfo.specVersion)
+        root_element = doc.rootElement[0]
+        print("Root SPDX Object ID:", root_element.spdxId)
 
-    rel_type_iri_len = len("https://spdx.org/rdf/3.0.1/terms/Core/relationshipType/")
-    relationships = spdx_object_set.obj_by_type["Relationship"]
-    print(len(relationships), "relationships found.")
-    print()
-    for rel in relationships:
-        from_ = getattr(rel[1], "from_")
-        to = getattr(rel[1], "to")
-        rel_type = getattr(rel[1], "relationshipType")[rel_type_iri_len:]
-        print(from_)
-        print(rel_type)
-        for o in to:
-            print(o)
+
+    if args.rel:
+        print("Relationships:")
+        rel_type_iri_len = len("https://spdx.org/rdf/3.0.1/terms/Core/relationshipType/")
+        relationships = spdx_object_set.obj_by_type["Relationship"]
+        print(len(relationships), "relationships found.")
         print()
+        for rel in relationships:
+            from_ = getattr(rel[1], "from_")
+            to = getattr(rel[1], "to")
+            rel_type = getattr(rel[1], "relationshipType")[rel_type_iri_len:]
+            print(from_)
+            print(rel_type)
+            for o in to:
+                print(o)
+            print()
 
 
 if __name__ == "__main__":
