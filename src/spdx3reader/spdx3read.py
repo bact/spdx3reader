@@ -104,6 +104,26 @@ def main():
                 print(o)
             print()
 
+class NTIAMinimumElement:
+    ntia_min_fields = {
+        "author_name": "Author Name",
+        "supplier_name": "Supplier Name",
+        "component_name": "Component Name",
+        "version_string": "Version String",
+        "component_hash": "Component Hash",
+        "unique_identifier": "Unique Identifier",
+        "relationship": "Relationship",
+        "timestamp": "Timestamp",
+    }
+
+    def __init__(self):
+        self.ntia_min = {k: None for k in self.ntia_min_fields}
+
+    def __str__(self):
+        lines = []
+        for k, v in self.ntia_min.items():
+            lines.append(f"{NTIAMinimumElement.ntia_min_fields[k]}: {v}")
+        return "\n".join(lines)
 
 if __name__ == "__main__":
     print(f"SPDX Python Model Version: {VERSION}")
@@ -112,3 +132,6 @@ if __name__ == "__main__":
         if not name.startswith("__"):
             print(name)
     main()
+
+    ntia_min = NTIAMinimumElement()
+    print(ntia_min)
