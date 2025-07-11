@@ -59,7 +59,10 @@ def main():
         "-T", "--tree", action="store_true", help="Print the SPDX object tree"
     )
     parser.add_argument(
-        "-R", "--rel", action="store_true", help="Print all relationships in the SPDX file"
+        "-R",
+        "--rel",
+        action="store_true",
+        help="Print all relationships in the SPDX file",
     )
     args = parser.parse_args()
 
@@ -86,19 +89,17 @@ def main():
         root_element = doc.rootElement[0]
         print("Root SPDX Object ID:", root_element.spdxId)
 
-
     if args.rel:
         print("Relationships:")
-        rel_type_iri_len = len("https://spdx.org/rdf/3.0.1/terms/Core/relationshipType/")
         relationships = spdx_object_set.obj_by_type["Relationship"]
         print(len(relationships), "relationships found.")
         print()
         for rel in relationships:
             from_ = getattr(rel[1], "from_")
             to = getattr(rel[1], "to")
-            rel_type = getattr(rel[1], "relationshipType")[rel_type_iri_len:]
+            rel_type = getattr(rel[1], "relationshipType")
             print(from_)
-            print(rel_type)
+            print(rel_type.split("/")[-1])  # Print only the term, omit the IRI prefix
             for o in to:
                 print(o)
             print()
