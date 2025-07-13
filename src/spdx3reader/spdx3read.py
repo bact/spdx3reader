@@ -5,6 +5,9 @@
 import argparse
 import json
 
+from dataclasses import dataclass, field
+from typing import Optional
+
 from spdx_python_model import v3_0_1 as spdx3
 from spdx_python_model import VERSION
 from spdx_python_model import bindings
@@ -104,8 +107,18 @@ def main():
                 print(o)
             print()
 
+@dataclass
 class NTIAMinimumElement:
-    ntia_min_fields = {
+    author_name: Optional[str] = None
+    supplier_name: Optional[str] = None
+    component_name: Optional[str] = None
+    version_string: Optional[str] = None
+    component_hash: Optional[str] = None
+    unique_identifier: Optional[str] = None
+    relationship: Optional[str] = None
+    timestamp: Optional[str] = None
+
+    field_names: dict[str, str] = field(default_factory=lambda: {
         "author_name": "Author Name",
         "supplier_name": "Supplier Name",
         "component_name": "Component Name",
@@ -114,15 +127,13 @@ class NTIAMinimumElement:
         "unique_identifier": "Unique Identifier",
         "relationship": "Relationship",
         "timestamp": "Timestamp",
-    }
-
-    def __init__(self):
-        self.ntia_min = {k: None for k in self.ntia_min_fields}
+    }, init=False, repr=False)
 
     def __str__(self):
-        lines = []
-        for k, v in self.ntia_min.items():
-            lines.append(f"{NTIAMinimumElement.ntia_min_fields[k]}: {v}")
+        lines: list[str] = []
+        for key in self.field_names:
+            value = getattr(self, key)
+            lines.append(f"{self.field_names[key]}: {value}")
         return "\n".join(lines)
 
 if __name__ == "__main__":
@@ -135,3 +146,5 @@ if __name__ == "__main__":
 
     ntia_min = NTIAMinimumElement()
     print(ntia_min)
+
+    
