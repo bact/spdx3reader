@@ -108,7 +108,7 @@ def main():
             print()
 
 @dataclass
-class NTIAMinimumElement:
+class ComplianceElementBase:
     author_name: Optional[str] = None
     supplier_name: Optional[str] = None
     component_name: Optional[str] = None
@@ -118,6 +118,18 @@ class NTIAMinimumElement:
     relationship: Optional[str] = None
     timestamp: Optional[str] = None
 
+    # Can be overridden in subclasses
+    field_names: dict[str, str] = field(default_factory=dict, init=False, repr=False)
+
+    def __str__(self):
+        lines: list[str] = []
+        for key in self.field_names:
+            value = getattr(self, key)
+            lines.append(f"{self.field_names[key]}: {value}")
+        return "\n".join(lines)
+
+@dataclass
+class NTIAMinimumElement(ComplianceElementBase):
     field_names: dict[str, str] = field(default_factory=lambda: {
         "author_name": "Author Name",
         "supplier_name": "Supplier Name",
@@ -129,12 +141,9 @@ class NTIAMinimumElement:
         "timestamp": "Timestamp",
     }, init=False, repr=False)
 
-    def __str__(self):
-        lines: list[str] = []
-        for key in self.field_names:
-            value = getattr(self, key)
-            lines.append(f"{self.field_names[key]}: {value}")
-        return "\n".join(lines)
+@dataclass
+class FSCTBaselineAttribute(ComplianceElementBase):
+    pass
 
 if __name__ == "__main__":
     print(f"SPDX Python Model Version: {VERSION}")
