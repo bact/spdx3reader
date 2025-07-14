@@ -25,7 +25,7 @@ class ComplianceElementBase:
             value = getattr(self, key)
             lines.append(f"{self.fields[key]}: {value}")
         return "\n".join(lines)
-    
+
     def isCompliant(self) -> bool:
         """
         Check if the compliance element is compliant.
@@ -67,10 +67,10 @@ class NTIAMinimumElement(ComplianceElementBase):
                 return False
         return True
 
+
 @dataclass
 class FSCTBaselineAttribute(ComplianceElementBase):
     pass
-
 
 
 def read_json_file(filepath: str):
@@ -94,17 +94,23 @@ def get_names(items: list[spdx3.Element], delimiter: str = ";") -> str:
     return delimiter.join(str_list)
 
 
-def get_ntia_minimum_element(spdx_object_set: spdx3.SHACLObjectSet) -> NTIAMinimumElement:
+def get_ntia_minimum_element(
+    spdx_object_set: spdx3.SHACLObjectSet,
+) -> NTIAMinimumElement:
     ntia = NTIAMinimumElement()
 
-    spdx_documents = list(spdx_object_set.obj_by_type["SpdxDocument"])
+    spdx_documents: list[spdx3.SHACLObject] = list(
+        spdx_object_set.foreach_type(spdx3.SpdxDocument)
+    )
+
+    # spdx_documents:  = list(spdx_object_set.obj_by_type["SpdxDocument"])
     if len(spdx_documents) != 1:
         raise ValueError(
             f"There should be exactly one SpdxDocument object in an SPDX 3 JSON file."
             f"Found: {len(spdx_documents)}"
-            )
+        )
 
-    doc = spdx_documents[0][1]
+    doc: spdx3.SpdxDocument = spdx_documents[0]
     creation_info = getattr(doc, "creationInfo")
     if creation_info:
         created_by = getattr(creation_info, "createdBy")
@@ -113,12 +119,24 @@ def get_ntia_minimum_element(spdx_object_set: spdx3.SHACLObjectSet) -> NTIAMinim
         ntia.timestamp = getattr(creation_info, "created")
         ntia.version_string = getattr(creation_info, "specVersion")
 
-    root_element = doc.rootElement[0]
-    # get root element type, if type is not BOM or SBOM, get this as root
-    # if type is BOM or SBOM, get its root as root
-    if isinstance(root_element, (spdx3.Bom, spdx3.software_Sbom)):
-        root_element = root_element.rootElement[0]
-    
+    root_element = getattr(doc, "rootElement")
+    if not root_element or len(root_element) != 1:
+        raise ValueError(
+            f"There should be exactly one root element in the SPDX document."
+            f"Found: {len(root_element)}"
+        )
+    root_element = root_element[0]  # get the first element
+
+    # If the root element is Bom or software_Bom, go further to get the actual root element
+    if root_element.__class__.__name__ in ["Bom", "software_Sbom"]:
+        root_element = getattr(root_element, "rootElement")
+        if not root_element or len(root_element) != 1:
+            raise ValueError(
+                f"There should be exactly one root element in the BOM."
+                f"Found: {len(root_element)}"
+            )
+        root_element = root_element[0]
+
     ntia.component_name = getattr(root_element, "name")
     ntia.unique_identifier = getattr(root_element, "spdxId")
 
@@ -127,10 +145,11 @@ def get_ntia_minimum_element(spdx_object_set: spdx3.SHACLObjectSet) -> NTIAMinim
         ntia.supplier_name = get_names(supplied_by)
 
     integrity_method = getattr(root_element, "verifiedUsing")
-    if integrity_method and isinstance(integrity_method, spdx3.Hash):
-            ntia.component_hash = getattr(integrity_method, "hashValue")
+    if integrity_method.__class__.__name__ == "Hash":
+        ntia.component_hash = getattr(integrity_method, "hashValue")
 
     return ntia
+
 
 def print_relationships(relationships: list[spdx3.Relationship]):
     for rel in relationships:
@@ -178,7 +197,10 @@ def main():
         "-V", "--version", action="store_true", help="Print version information"
     )
     parser.add_argument(
-        "-P", "--print", action="store_true", help="Print the minimum elements/baseline attributes"
+        "-P",
+        "--print",
+        action="store_true",
+        help="Print the minimum elements/baseline attributes",
     )
     parser.add_argument(
         "-J", "--json-dump", action="store_true", help="Print the JSON content"
@@ -228,8 +250,9 @@ def main():
     if not ntia.isCompliant():
         print("Not compliant with NTIA Minimum Element requirements.")
         exit(1)
-    
+
     print("Compliant with NTIA Minimum Element requirements.")
+
 
 if __name__ == "__main__":
     main()
