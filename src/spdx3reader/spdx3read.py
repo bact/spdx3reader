@@ -132,6 +132,18 @@ def get_ntia_minimum_element(spdx_object_set: spdx3.SHACLObjectSet) -> NTIAMinim
 
     return ntia
 
+def print_relationships(relationships: list[spdx3.Relationship]):
+    for rel in relationships:
+        from_ = getattr(rel[1], "from_")
+        to = getattr(rel[1], "to")
+        rel_type = getattr(rel[1], "relationshipType")
+        print(from_)
+        print(rel_type.split("/")[-1])  # Print only the term, omit the IRI prefix
+        for o in to:
+            print(o)
+        print()
+
+
 # def json_to_spdx_graph(json_data) -> list[spdx3.SHACLObject]:
 #     """
 #     Convert JSON data to an SPDX 3.0.1 document.
@@ -163,7 +175,13 @@ def main():
     parser = argparse.ArgumentParser(description="Read and print an SPDX 3 JSON file.")
     parser.add_argument("filepath", help="Path to the SPDX 3 JSON file")
     parser.add_argument(
-        "-D", "--dump", action="store_true", help="Print the JSON content"
+        "-V", "--version", action="store_true", help="Print version information"
+    )
+    parser.add_argument(
+        "-P", "--print", action="store_true", help="Print the minimum elements/baseline attributes"
+    )
+    parser.add_argument(
+        "-J", "--json-dump", action="store_true", help="Print the JSON content"
     )
     parser.add_argument(
         "-T", "--tree", action="store_true", help="Print the SPDX object tree"
@@ -176,42 +194,42 @@ def main():
     )
     args = parser.parse_args()
 
-    if args.dump:
+    if args.version:
+        print(f"SPDX Python Model Version: {VERSION}")
+        print("Available bindings in spdx_python_model:")
+        for name in dir(bindings):
+            if not name.startswith("__"):
+                print(name)
+
+    if args.json_dump:
         json_data = read_json_file(args.filepath)
         print(json.dumps(json_data, indent=2))
 
     spdx_object_set = deserialize_spdx_json_file(args.filepath)
+
     if args.tree:
         print("SPDX Object Tree:")
         spdx3.print_tree(spdx_object_set.objects)
         print(len(spdx_object_set.objects), "SPDX objects found.")
 
-    ntia = get_ntia_minimum_element(spdx_object_set)
-    print("NTIA Minimum Element:")
-    print(ntia)
-    print(ntia.isCompliant())
-
     if args.rel:
-        print("Relationships:")
         relationships = spdx_object_set.obj_by_type["Relationship"]
-        print(len(relationships), "relationships found.")
+        print("Relationships:")
         print()
-        for rel in relationships:
-            from_ = getattr(rel[1], "from_")
-            to = getattr(rel[1], "to")
-            rel_type = getattr(rel[1], "relationshipType")
-            print(from_)
-            print(rel_type.split("/")[-1])  # Print only the term, omit the IRI prefix
-            for o in to:
-                print(o)
-            print()
+        print_relationships(relationships)
+        print(len(relationships), "relationships found.")
 
+    ntia = get_ntia_minimum_element(spdx_object_set)
 
+    if args.print:
+        print("NTIA Minimum Element:")
+        print(ntia)
+
+    if not ntia.isCompliant():
+        print("Not compliant with NTIA Minimum Element requirements.")
+        exit(1)
+    
+    print("Compliant with NTIA Minimum Element requirements.")
 
 if __name__ == "__main__":
-    print(f"SPDX Python Model Version: {VERSION}")
-    print("Available bindings in spdx_python_model:")
-    for name in dir(bindings):
-        if not name.startswith("__"):
-            print(name)
     main()
