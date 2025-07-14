@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import argparse
+from datetime import datetime
 import json
 
 from dataclasses import dataclass, field
@@ -11,6 +12,65 @@ from typing import Optional
 from spdx_python_model import v3_0_1 as spdx3
 from spdx_python_model import VERSION
 from spdx_python_model import bindings
+
+
+@dataclass
+class ComplianceElementBase:
+    # Can be overridden in subclasses
+    fields: dict[str, str] = field(default_factory=dict, init=False, repr=False)
+
+    def __str__(self):
+        lines: list[str] = []
+        for key in self.fields:
+            value = getattr(self, key)
+            lines.append(f"{self.fields[key]}: {value}")
+        return "\n".join(lines)
+    
+    def isCompliant(self) -> bool:
+        """
+        Check if the compliance element is compliant.
+        This can be overridden in subclasses to implement specific compliance checks.
+        """
+        return True
+
+
+@dataclass
+class NTIAMinimumElement(ComplianceElementBase):
+    author_name: Optional[str] = None
+    supplier_name: Optional[str] = None
+    component_name: Optional[str] = None
+    version_string: Optional[str] = None
+    component_hash: Optional[str] = None
+    unique_identifier: Optional[str] = None
+    relationship: Optional[str] = None
+    timestamp: Optional[datetime] = None
+
+    fields: dict[str, str] = field(
+        default_factory=lambda: {
+            "author_name": "Author Name",
+            "supplier_name": "Supplier Name",
+            "component_name": "Component Name",
+            "version_string": "Version String",
+            "component_hash": "Component Hash",
+            "unique_identifier": "Unique Identifier",
+            "relationship": "Relationship",
+            "timestamp": "Timestamp",
+        },
+        init=False,
+        repr=False,
+    )
+
+    def isCompliant(self) -> bool:
+        for key in self.fields:
+            value = getattr(self, key)
+            if value is None or (isinstance(value, str) and value.strip() == ""):
+                return False
+        return True
+
+@dataclass
+class FSCTBaselineAttribute(ComplianceElementBase):
+    pass
+
 
 
 def read_json_file(filepath: str):
@@ -24,6 +84,53 @@ def deserialize_spdx_json_file(filepath: str) -> spdx3.SHACLObjectSet:
         spdx3.JSONLDDeserializer().read(f, object_set)
         return object_set
 
+
+def get_names(items: list[spdx3.Element], delimiter: str = ";") -> str:
+    str_list: list[str] = []
+    for item in items:
+        if item.name is None:
+            pass
+        str_list.append(item.name)
+    return delimiter.join(str_list)
+
+
+def get_ntia_minimum_element(spdx_object_set: spdx3.SHACLObjectSet) -> NTIAMinimumElement:
+    ntia = NTIAMinimumElement()
+
+    spdx_documents = list(spdx_object_set.obj_by_type["SpdxDocument"])
+    if len(spdx_documents) != 1:
+        raise ValueError(
+            f"There should be exactly one SpdxDocument object in an SPDX 3 JSON file."
+            f"Found: {len(spdx_documents)}"
+            )
+
+    doc = spdx_documents[0][1]
+    creation_info = getattr(doc, "creationInfo")
+    if creation_info:
+        created_by = getattr(creation_info, "createdBy")
+        if created_by:
+            ntia.author_name = get_names(created_by)
+        ntia.timestamp = getattr(creation_info, "created")
+        ntia.version_string = getattr(creation_info, "specVersion")
+
+    root_element = doc.rootElement[0]
+    # get root element type, if type is not BOM or SBOM, get this as root
+    # if type is BOM or SBOM, get its root as root
+    if isinstance(root_element, (spdx3.Bom, spdx3.software_Sbom)):
+        root_element = root_element.rootElement[0]
+    
+    ntia.component_name = getattr(root_element, "name")
+    ntia.unique_identifier = getattr(root_element, "spdxId")
+
+    supplied_by = getattr(root_element, "suppliedBy")
+    if supplied_by:
+        ntia.supplier_name = get_names(supplied_by)
+
+    integrity_method = getattr(root_element, "verifiedUsing")
+    if integrity_method and isinstance(integrity_method, spdx3.Hash):
+            ntia.component_hash = getattr(integrity_method, "hashValue")
+
+    return ntia
 
 # def json_to_spdx_graph(json_data) -> list[spdx3.SHACLObject]:
 #     """
@@ -79,18 +186,10 @@ def main():
         spdx3.print_tree(spdx_object_set.objects)
         print(len(spdx_object_set.objects), "SPDX objects found.")
 
-    spdx_documents = list(spdx_object_set.obj_by_type["SpdxDocument"])
-    if len(spdx_documents) != 1:
-        print(
-            "Warning: There should be exactly one SpdxDocument object in an SPDX 3 JSON file."
-        )
-        print(f"Found: {len(spdx_documents)}")
-    else:
-        print(spdx_documents)
-        doc = spdx_documents[0][1]
-        print("SPDX Spec Version:", doc.creationInfo.specVersion)
-        root_element = doc.rootElement[0]
-        print("Root SPDX Object ID:", root_element.spdxId)
+    ntia = get_ntia_minimum_element(spdx_object_set)
+    print("NTIA Minimum Element:")
+    print(ntia)
+    print(ntia.isCompliant())
 
     if args.rel:
         print("Relationships:")
@@ -107,43 +206,7 @@ def main():
                 print(o)
             print()
 
-@dataclass
-class ComplianceElementBase:
-    author_name: Optional[str] = None
-    supplier_name: Optional[str] = None
-    component_name: Optional[str] = None
-    version_string: Optional[str] = None
-    component_hash: Optional[str] = None
-    unique_identifier: Optional[str] = None
-    relationship: Optional[str] = None
-    timestamp: Optional[str] = None
 
-    # Can be overridden in subclasses
-    field_names: dict[str, str] = field(default_factory=dict, init=False, repr=False)
-
-    def __str__(self):
-        lines: list[str] = []
-        for key in self.field_names:
-            value = getattr(self, key)
-            lines.append(f"{self.field_names[key]}: {value}")
-        return "\n".join(lines)
-
-@dataclass
-class NTIAMinimumElement(ComplianceElementBase):
-    field_names: dict[str, str] = field(default_factory=lambda: {
-        "author_name": "Author Name",
-        "supplier_name": "Supplier Name",
-        "component_name": "Component Name",
-        "version_string": "Version String",
-        "component_hash": "Component Hash",
-        "unique_identifier": "Unique Identifier",
-        "relationship": "Relationship",
-        "timestamp": "Timestamp",
-    }, init=False, repr=False)
-
-@dataclass
-class FSCTBaselineAttribute(ComplianceElementBase):
-    pass
 
 if __name__ == "__main__":
     print(f"SPDX Python Model Version: {VERSION}")
@@ -152,8 +215,3 @@ if __name__ == "__main__":
         if not name.startswith("__"):
             print(name)
     main()
-
-    ntia_min = NTIAMinimumElement()
-    print(ntia_min)
-
-    
