@@ -85,7 +85,9 @@ def deserialize_spdx_json_file(filepath: str) -> spdx3.SHACLObjectSet:
         return object_set
 
 
-def get_names(items: Union[spdx3.Element, list[spdx3.Element]], delimiter: str = ";") -> Optional[str]:
+def get_names(
+    items: Union[spdx3.Element, list[spdx3.Element]], delimiter: str = "; "
+) -> Optional[str]:
     if isinstance(items, spdx3.Element):
         return getattr(items, "name")
 
@@ -98,7 +100,10 @@ def get_names(items: Union[spdx3.Element, list[spdx3.Element]], delimiter: str =
 
     return delimiter.join(str_list)
 
-def get_hash_values(items: Union[spdx3.Hash, list[spdx3.Hash]], delimiter: str = ";") -> Optional[str]:
+
+def get_hash_values(
+    items: Union[spdx3.Hash, list[spdx3.Hash]], delimiter: str = "; "
+) -> Optional[str]:
     if isinstance(items, spdx3.Hash):
         return getattr(items, "hashValue")
 
@@ -106,11 +111,18 @@ def get_hash_values(items: Union[spdx3.Hash, list[spdx3.Hash]], delimiter: str =
     for item in items:
         algorithm = getattr(item, "algorithm")
         hash_value = getattr(item, "hashValue")
-        if not algorithm or algorithm.strip() == "" or not hash_value or hash_value.strip() == "":
+        if (
+            not algorithm
+            or algorithm.strip() == ""
+            or not hash_value
+            or hash_value.strip() == ""
+        ):
             pass
-        str_list.append(f"{algorithm}: {hash_value}")
+        algorithm = algorithm.split("/")[-1]  # Get the last part of the IRI
+        str_list.append(f"{algorithm}:{hash_value}")
 
     return delimiter.join(str_list)
+
 
 def get_ntia_minimum_element(
     spdx_object_set: spdx3.SHACLObjectSet,
@@ -120,8 +132,6 @@ def get_ntia_minimum_element(
     spdx_documents: list[spdx3.SHACLObject] = list(
         spdx_object_set.foreach_type(spdx3.SpdxDocument)
     )
-
-    # spdx_documents:  = list(spdx_object_set.obj_by_type["SpdxDocument"])
     if len(spdx_documents) != 1:
         raise ValueError(
             f"There should be exactly one SpdxDocument object in an SPDX 3 JSON file."
@@ -146,7 +156,7 @@ def get_ntia_minimum_element(
     root_element = root_element[0]  # get the first element
 
     # If the root element is Bom or software_Bom, go further to get the actual root element
-    if root_element.__class__.__name__ in ["Bom", "software_Sbom"]:
+    if isinstance(root_element, (spdx3.Bom, spdx3.software_Sbom)):
         root_element = getattr(root_element, "rootElement")
         if not root_element or len(root_element) != 1:
             raise ValueError(
