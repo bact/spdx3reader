@@ -2,6 +2,8 @@
 # SPDX-FileType: SOURCE
 # SPDX-License-Identifier: Apache-2.0
 
+from __future__ import annotations
+
 import argparse
 from datetime import datetime
 import json
@@ -26,7 +28,7 @@ class ComplianceElementBase:
             lines.append(f"{self.fields[key]}: {value}")
         return "\n".join(lines)
 
-    def isCompliant(self) -> bool:
+    def is_compliant(self) -> bool:
         """
         Check if the compliance element is compliant.
         This can be overridden in subclasses to implement specific compliance checks.
@@ -60,7 +62,7 @@ class NTIAMinimumElement(ComplianceElementBase):
         repr=False,
     )
 
-    def isCompliant(self) -> bool:
+    def is_compliant(self) -> bool:
         for key in self.fields:
             value = getattr(self, key)
             if value is None or (isinstance(value, str) and value.strip() == ""):
@@ -134,8 +136,7 @@ def get_ntia_minimum_element(
     )
     if len(spdx_documents) != 1:
         raise ValueError(
-            f"There should be exactly one SpdxDocument object in an SPDX 3 JSON file."
-            f"Found: {len(spdx_documents)}"
+            "There should be exactly one SpdxDocument object in an SPDX 3 JSON file."
         )
 
     doc: spdx3.SpdxDocument = spdx_documents[0]
@@ -150,8 +151,7 @@ def get_ntia_minimum_element(
     root_element = getattr(doc, "rootElement")
     if not root_element or len(root_element) != 1:
         raise ValueError(
-            f"There should be exactly one root element in the SPDX document."
-            f"Found: {len(root_element)}"
+            "There should be exactly one root element in the SPDX document."
         )
     root_element = root_element[0]  # get the first element
 
@@ -160,8 +160,7 @@ def get_ntia_minimum_element(
         root_element = getattr(root_element, "rootElement")
         if not root_element or len(root_element) != 1:
             raise ValueError(
-                f"There should be exactly one root element in the BOM."
-                f"Found: {len(root_element)}"
+                "There should be exactly one root element in the BOM."
             )
         root_element = root_element[0]
 
@@ -275,7 +274,7 @@ def main():
         print("NTIA Minimum Element:")
         print(ntia)
 
-    if not ntia.isCompliant():
+    if not ntia.is_compliant():
         print("Not compliant with NTIA Minimum Element requirements.")
         exit(1)
 
