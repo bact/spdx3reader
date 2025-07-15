@@ -7,7 +7,7 @@ from datetime import datetime
 import json
 
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Optional, Union
 
 from spdx_python_model import v3_0_1 as spdx3
 from spdx_python_model import VERSION
@@ -85,14 +85,32 @@ def deserialize_spdx_json_file(filepath: str) -> spdx3.SHACLObjectSet:
         return object_set
 
 
-def get_names(items: list[spdx3.Element], delimiter: str = ";") -> str:
+def get_names(items: Union[spdx3.Element, list[spdx3.Element]], delimiter: str = ";") -> Optional[str]:
+    if isinstance(items, spdx3.Element):
+        return getattr(items, "name")
+
     str_list: list[str] = []
     for item in items:
-        if item.name is None:
+        name = getattr(item, "name")
+        if name is None:
             pass
-        str_list.append(item.name)
+        str_list.append(name)
+
     return delimiter.join(str_list)
 
+def get_hash_values(items: Union[spdx3.Hash, list[spdx3.Hash]], delimiter: str = ";") -> Optional[str]:
+    if isinstance(items, spdx3.Hash):
+        return getattr(items, "hashValue")
+
+    str_list: list[str] = []
+    for item in items:
+        algorithm = getattr(item, "algorithm")
+        hash_value = getattr(item, "hashValue")
+        if not algorithm or algorithm.strip() == "" or not hash_value or hash_value.strip() == "":
+            pass
+        str_list.append(f"{algorithm}: {hash_value}")
+
+    return delimiter.join(str_list)
 
 def get_ntia_minimum_element(
     spdx_object_set: spdx3.SHACLObjectSet,
@@ -145,8 +163,8 @@ def get_ntia_minimum_element(
         ntia.supplier_name = get_names(supplied_by)
 
     integrity_method = getattr(root_element, "verifiedUsing")
-    if integrity_method.__class__.__name__ == "Hash":
-        ntia.component_hash = getattr(integrity_method, "hashValue")
+    if integrity_method:
+        ntia.component_hash = get_hash_values(integrity_method)
 
     return ntia
 
