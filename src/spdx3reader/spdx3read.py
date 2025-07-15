@@ -12,13 +12,11 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Union
 
 from spdx_python_model import v3_0_1 as spdx3
-from spdx_python_model import VERSION
-from spdx_python_model import bindings
+from spdx_python_model import VERSION, bindings
 
 
 @dataclass
 class ComplianceElementBase:
-    # Can be overridden in subclasses
     fields: Dict[str, str] = field(default_factory=Dict, init=False, repr=False)
 
     def __str__(self):
@@ -30,8 +28,8 @@ class ComplianceElementBase:
 
     def is_compliant(self) -> bool:
         """
-        Check if the compliance element is compliant.
-        This can be overridden in subclasses to implement specific compliance checks.
+        Check if the element is compliant.
+        This should be overridden in subclasses to implement specific compliance checks.
         """
         return True
 
@@ -159,9 +157,7 @@ def get_ntia_minimum_element(
     if isinstance(root_element, (spdx3.Bom, spdx3.software_Sbom)):
         root_element = getattr(root_element, "rootElement")
         if not root_element or len(root_element) != 1:
-            raise ValueError(
-                "There should be exactly one root element in the BOM."
-            )
+            raise ValueError("There should be exactly one root element in the BOM.")
         root_element = root_element[0]
 
     ntia.component_name = getattr(root_element, "name")
