@@ -25,7 +25,9 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: CPython",
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
-dependencies = []
+dependencies = [
+  "spdx-python-model>=0.0.2",
+]
 
 [project.urls]
 Documentation = "https://github.com/bact/spdx3reader#readme"

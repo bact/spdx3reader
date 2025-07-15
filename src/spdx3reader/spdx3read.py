@@ -7,7 +7,7 @@ from datetime import datetime
 import json
 
 from dataclasses import dataclass, field
-from typing import Optional, Union
+from typing import Dict, List, Optional, Union
 
 from spdx_python_model import v3_0_1 as spdx3
 from spdx_python_model import VERSION
@@ -17,10 +17,10 @@ from spdx_python_model import bindings
 @dataclass
 class ComplianceElementBase:
     # Can be overridden in subclasses
-    fields: dict[str, str] = field(default_factory=dict, init=False, repr=False)
+    fields: Dict[str, str] = field(default_factory=Dict, init=False, repr=False)
 
     def __str__(self):
-        lines: list[str] = []
+        lines: List[str] = []
         for key in self.fields:
             value = getattr(self, key)
             lines.append(f"{self.fields[key]}: {value}")
@@ -45,7 +45,7 @@ class NTIAMinimumElement(ComplianceElementBase):
     relationship: Optional[str] = None
     timestamp: Optional[datetime] = None
 
-    fields: dict[str, str] = field(
+    fields: Dict[str, str] = field(
         default_factory=lambda: {
             "author_name": "Author Name",
             "supplier_name": "Supplier Name",
@@ -86,12 +86,12 @@ def deserialize_spdx_json_file(filepath: str) -> spdx3.SHACLObjectSet:
 
 
 def get_names(
-    items: Union[spdx3.Element, list[spdx3.Element]], delimiter: str = "; "
+    items: Union[spdx3.Element, List[spdx3.Element]], delimiter: str = "; "
 ) -> Optional[str]:
     if isinstance(items, spdx3.Element):
         return getattr(items, "name")
 
-    str_list: list[str] = []
+    str_list: List[str] = []
     for item in items:
         name = getattr(item, "name")
         if name is None:
@@ -102,12 +102,12 @@ def get_names(
 
 
 def get_hash_values(
-    items: Union[spdx3.Hash, list[spdx3.Hash]], delimiter: str = "; "
+    items: Union[spdx3.Hash, List[spdx3.Hash]], delimiter: str = "; "
 ) -> Optional[str]:
     if isinstance(items, spdx3.Hash):
         return getattr(items, "hashValue")
 
-    str_list: list[str] = []
+    str_list: List[str] = []
     for item in items:
         algorithm = getattr(item, "algorithm")
         hash_value = getattr(item, "hashValue")
@@ -129,7 +129,7 @@ def get_ntia_minimum_element(
 ) -> NTIAMinimumElement:
     ntia = NTIAMinimumElement()
 
-    spdx_documents: list[spdx3.SHACLObject] = list(
+    spdx_documents: List[spdx3.SHACLObject] = list(
         spdx_object_set.foreach_type(spdx3.SpdxDocument)
     )
     if len(spdx_documents) != 1:
@@ -179,7 +179,7 @@ def get_ntia_minimum_element(
     return ntia
 
 
-def print_relationships(relationships: list[spdx3.Relationship]):
+def print_relationships(relationships: List[spdx3.Relationship]):
     for rel in relationships:
         from_ = getattr(rel[1], "from_")
         to = getattr(rel[1], "to")
@@ -191,7 +191,7 @@ def print_relationships(relationships: list[spdx3.Relationship]):
         print()
 
 
-# def json_to_spdx_graph(json_data) -> list[spdx3.SHACLObject]:
+# def json_to_spdx_graph(json_data) -> List[spdx3.SHACLObject]:
 #     """
 #     Convert JSON data to an SPDX 3.0.1 document.
 #     """
