@@ -5,14 +5,14 @@
 from __future__ import annotations
 
 import argparse
-from datetime import datetime
 import json
-
+import sys
 from dataclasses import dataclass, field
+from datetime import datetime
 from typing import Dict, List, Optional, Union
 
-from spdx_python_model import v3_0_1 as spdx3
 from spdx_python_model import VERSION, bindings
+from spdx_python_model import v3_0_1 as spdx3
 
 
 @dataclass
@@ -74,13 +74,13 @@ class FSCTBaselineAttribute(ComplianceElementBase):
 
 
 def read_json_file(filepath: str):
-    with open(filepath, "r", encoding="utf-8") as f:
+    with open(filepath, encoding="utf-8") as f:
         return json.load(f)
 
 
 def deserialize_spdx_json_file(filepath: str) -> spdx3.SHACLObjectSet:
     object_set = spdx3.SHACLObjectSet()
-    with open(filepath, "r", encoding="utf-8") as f:
+    with open(filepath, encoding="utf-8") as f:
         spdx3.JSONLDDeserializer().read(f, object_set)
         return object_set
 
@@ -129,7 +129,7 @@ def get_ntia_minimum_element(
 ) -> NTIAMinimumElement:
     ntia = NTIAMinimumElement()
 
-    spdx_documents: List[spdx3.SHACLObject] = list(
+    spdx_documents: List[spdx3.SpdxDocument] = list(
         spdx_object_set.foreach_type(spdx3.SpdxDocument)
     )
     if len(spdx_documents) != 1:
@@ -176,9 +176,9 @@ def get_ntia_minimum_element(
 
 def print_relationships(relationships: List[spdx3.Relationship]):
     for rel in relationships:
-        from_ = getattr(rel[1], "from_")
-        to = getattr(rel[1], "to")
-        rel_type = getattr(rel[1], "relationshipType")
+        from_ = getattr(rel, "from_")
+        to = getattr(rel, "to")
+        rel_type = getattr(rel, "relationshipType")
         print(from_)
         print(rel_type.split("/")[-1])  # Print only the term, omit the IRI prefix
         for o in to:
@@ -258,7 +258,9 @@ def main():
         print(len(spdx_object_set.objects), "SPDX objects found.")
 
     if args.rel:
-        relationships = spdx_object_set.obj_by_type["Relationship"]
+        relationships: List[spdx3.Relationship] = list(
+            spdx_object_set.foreach_type(spdx3.Relationship)
+        )
         print("Relationships:")
         print()
         print_relationships(relationships)
@@ -272,7 +274,7 @@ def main():
 
     if not ntia.is_compliant():
         print("Not compliant with NTIA Minimum Element requirements.")
-        exit(1)
+        sys.exit(1)
 
     print("Compliant with NTIA Minimum Element requirements.")
 
