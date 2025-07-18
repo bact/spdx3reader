@@ -21,3 +21,6 @@ The current code can check all the existence of all minimum elements
 but not yet the relationships (like licenses).
 
 To be integrated into `ntia-conformance-checker`.
+
+Note: see the SPDX 3.0 - NTIA Minimum Elements mapping from this
+[design document](https://docs.google.com/document/d/1pueRxlxoM9n1eG9g6AihjLvybEBTd77m22mRYBQltpg/edit?tab=t.0#heading=h.qtqmj6afdw8r).
