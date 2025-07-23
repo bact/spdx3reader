@@ -13,7 +13,7 @@ from typing import List
 from spdx_python_model import VERSION, bindings
 from spdx_python_model import v3_0_1 as spdx3
 
-from compliance_info import get_ntia_minimum_element
+from spdx3reader.compliance import FSCTBaselineAttribute, load_compliance_info
 
 
 def read_json_file(filepath: str):
@@ -40,53 +40,26 @@ def print_relationships(relationships: List[spdx3.Relationship]):
         print()
 
 
-# def json_to_spdx_graph(json_data) -> List[spdx3.SHACLObject]:
-#     """
-#     Convert JSON data to an SPDX 3.0.1 document.
-#     """
-#     spdx3_classes = {
-#         name: cls
-#         for name, cls in vars(spdx3).items()
-#         if inspect.isclass(cls) and cls.__module__ == spdx3.__name__
-#     }
-
-#     json_graph_data = json_data.get("@graph", [])
-#     for entry in json_graph_data:
-#         type_name = entry.get("type")
-#         if not type_name:
-#             continue
-#         cls = spdx3_classes.get(type_name)
-#         if cls is None:
-#             continue  # Unknown type, skip
-#         obj = cls()
-#         for k, v in entry.items():
-#             if k != "type":
-#                 obj[k] = v
-#         graph.append(obj)
-
-#     return graph
-
-
 def main():
     parser = argparse.ArgumentParser(description="Read and print an SPDX 3 JSON file.")
     parser.add_argument("filepath", help="Path to the SPDX 3 JSON file")
     parser.add_argument(
-        "-V", "--version", action="store_true", help="Print version information"
+        "-v", "--version", action="store_true", help="Print version information"
     )
     parser.add_argument(
-        "-P",
+        "-p",
         "--print",
         action="store_true",
         help="Print the minimum elements/baseline attributes",
     )
     parser.add_argument(
-        "-J", "--json-dump", action="store_true", help="Print the JSON content"
+        "-j", "--json-dump", action="store_true", help="Print the JSON content"
     )
     parser.add_argument(
-        "-T", "--tree", action="store_true", help="Print the SPDX object tree"
+        "-t", "--tree", action="store_true", help="Print the SPDX object tree"
     )
     parser.add_argument(
-        "-R",
+        "-r",
         "--rel",
         action="store_true",
         help="Print all relationships in the SPDX file",
@@ -120,17 +93,18 @@ def main():
         print_relationships(relationships)
         print(len(relationships), "relationships found.")
 
-    ntia = get_ntia_minimum_element(spdx_object_set)
+    # info_base = NTIAMinimumElement()
+    info_base = FSCTBaselineAttribute()
+    load_compliance_info(spdx_object_set, info_base)
 
     if args.print:
-        print("NTIA Minimum Element:")
-        print(ntia)
+        print(info_base)
 
-    if not ntia.is_compliant():
-        print("Not compliant with NTIA Minimum Element requirements.")
+    if not info_base.is_compliant():
+        print(f"Not compliant with {info_base.compliance_standard} requirements.")
         sys.exit(1)
 
-    print("Compliant with NTIA Minimum Element requirements.")
+    print(f"Compliant with {info_base.compliance_standard} requirements.")
 
 
 if __name__ == "__main__":
