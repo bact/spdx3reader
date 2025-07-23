@@ -30,13 +30,31 @@ def deserialize_spdx_json_file(filepath: str) -> spdx3.SHACLObjectSet:
 
 def print_relationships(relationships: List[spdx3.Relationship]):
     for rel in relationships:
-        from_ = getattr(rel, "from_")
+        from_ = getattr(
+            rel, "from_"
+        )  # spdx-python-model uses "from_" instead of "from" to avoid the Python keyword
         to = getattr(rel, "to")
-        rel_type = getattr(rel, "relationshipType")
-        print(from_)
-        print(rel_type.split("/")[-1])  # Print only the term, omit the IRI prefix
+        rel_type = getattr(rel, "relationshipType").split("/")[
+            -1
+        ]  # print only the type name, not the full URL
+
+        print("┏" + "━" * 50 + "┅")
+        print(f"┃ {from_.__class__.__name__}")
+        print(f"┃  - name: {from_.name}")
+        print(f"┃  - spdxId: {from_.spdxId}")
+        print("┗" + "━" * 50 + "┅")
+
+        print("    │")
+        print(f"  {rel_type}")
+        print("    ↓")
+
         for o in to:
-            print(o)
+            print("  ┏" + "━" * 50 + "┅")
+            print(f"  ┃ {o.__class__.__name__}")
+            print(f"  ┃  - name: {o.name}")
+            print(f"  ┃  - spdxId: {o.spdxId}")
+            print("  ┗" + "━" * 50 + "┅")
+
         print()
 
 
