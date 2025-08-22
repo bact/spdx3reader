@@ -6,7 +6,7 @@ SPDX-License-Identifier: Apache-2.0
 
 # SPDX 3 Reader
 
-SBOM compliance experimentation for GSoC 2025.
+SBOM compliance experimentation for [GSoC 2025](https://summerofcode.withgoogle.com/myprojects/details/CeR3hQTq).
 
 Read SPDX 3 JSON file, get SPDX 3 document as Python objects,
 and look for NTIA minimum elements.
@@ -133,3 +133,5 @@ To be integrated into `ntia-conformance-checker`.
 
 Note: see the SPDX 3.0 - NTIA Minimum Elements mapping from this
 [design document](https://docs.google.com/document/d/1pueRxlxoM9n1eG9g6AihjLvybEBTd77m22mRYBQltpg/edit?tab=t.0#heading=h.qtqmj6afdw8r).
+
+Some of the code was originally from this [spdx-python-model tutorial](https://gist.github.com/bact/7227ad858500c2097a25344a4af015d6).
